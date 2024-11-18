@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Home, Info, Phone, Folder } from "lucide-react";
 import FolderStructureLayout from "../components/FolderStructureLayout";
 
+import KnowledgeStructurePage from "../components/KnowledgeStructurePage";
 const Sidebar = ({ currentComponent, setCurrentComponent }) => {
   const [isHovered, setIsHovered] = useState(false);
   return (
@@ -13,8 +14,7 @@ const Sidebar = ({ currentComponent, setCurrentComponent }) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <ul className="p-4 space-y-4">
-        <li
+      <ul className="p-4 space-y-4"><li
           className={`flex items-center space-x-2 hover:bg-gray-700 p-2 rounded ${
             currentComponent === "Home" ? "bg-gray-700" : ""
           }`}
@@ -50,7 +50,14 @@ const Sidebar = ({ currentComponent, setCurrentComponent }) => {
           <Folder className="w-6 h-6" />
           {isHovered && <span>Folder Structure</span>}
         </li>
-      </ul>
+          <li
+            className={`flex items-center space-x-2 hover:bg-gray-700 p-2 rounded ${currentComponent === "KnowledgeStructurePage" ? "bg-gray-700" : ""}`}
+            onClick={() => setCurrentComponent("KnowledgeStructurePage") }
+          >
+            <Folder className="w-6 h-6" />
+            {isHovered && <span>KnowledgeStructurePage</span>}
+          </li>
+        </ul>
     </div>
   );
 };
@@ -70,6 +77,12 @@ export default function Page() {
         return (
           <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
             <FolderStructureLayout />
+          </div>
+        );
+      case "KnowledgeStructurePage":
+        return (
+          <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
+            <KnowledgeStructurePage />
           </div>
         );
       default:

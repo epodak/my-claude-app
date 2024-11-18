@@ -1,10 +1,22 @@
+// 请确保你的脚本文件名为 setup-claude.mjs
 import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
 import clipboardy from 'clipboardy';
 
 // 项目路径配置
-const projectRoot = path.resolve('.');
+const findProjectRoot = () => {
+  let currentDir = process.cwd();
+  while (currentDir !== '/' && !fs.existsSync(path.join(currentDir, 'package.json'))) {
+    currentDir = path.dirname(currentDir);
+  }
+  if (!fs.existsSync(path.join(currentDir, 'package.json'))) {
+    throw new Error('未找到 package.json，请在项目根目录运行此脚本');
+  }
+  return currentDir;
+};
+
+const projectRoot = findProjectRoot();
 const componentsDir = path.join(projectRoot, 'src', 'components');
 const pagePath = path.join(projectRoot, 'src', 'app', 'page.tsx');
 
@@ -27,189 +39,9 @@ const checkProjectStructure = () => {
 
   if (!fs.existsSync(pagePath)) {
     console.log('page.tsx 不存在，将创建基础版本...');
-    const basicPageContent = `
-import React, { useState } from 'react';
-import { Folder } from 'lucide-react';
-
-export default function Home() {
-  const [currentComponent, setCurrentComponent] = useState("");
-  const [isHovered, setIsHovered] = useState(false);
-
-  const renderComponent = () => {
-    switch (currentComponent) {
-      default:
-        return <div>Select a component</div>;
-    }
-  };
-
-  return (
-    <main className="flex min-h-screen">
-      <nav className="w-16 hover:w-48 transition-all bg-gray-800 text-white">
-        <ul className="p-2 space-y-2"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}>
-        </ul>
-      </nav>
-      <div className="flex-1 p-4">
-        {renderComponent()}
-      </div>
-    </main>
-  );
-}
-`;
-    fs.writeFileSync(pagePath, basicPageContent, 'utf-8');
-  }
-};
-
-// 从剪贴板读取代码
-const readClipboardCode = async () => {
-  console.log('==== 读取剪贴板 ====');
-  try {
-    const code = await clipboardy.read();
-    console.log('成功读取剪贴板内容，长度:', code.length);
-    console.log('代码前100个字符:', code.substring(0, 100));
-
-    // 更严格的组件代码验证
-    if (!code.includes('React')) {
-      console.log('警告: 代码中没有找到 React 引用');
-    }
-    if (!code.includes('export default')) {
-      throw new Error('代码中没有找到 export default 语句');
-    }
-    if (!code.match(/const \w+: React\.FC/)) {
-      console.log('警告: 没有找到 React.FC 类型声明');
-    }
-
-    return code;
-  } catch (err) {
-    console.error('剪贴板读取错误:', err);
-    throw err;
-  }
-};
-
-// 保存组件到文件
-const saveClipboardCode = (code) => {
-  console.log('==== 保存组件文件 ====');
-
-  // 提取文件名的正则表达式增强版
-  const patterns = [
-    /export default function (\w+)/,
-    /const (\w+): React\.FC/,
-    /const (\w+) = \(\)/,
-    /function (\w+)\(/
-  ];
-
-  let fileName = null;
-  for (const pattern of patterns) {
-    const match = code.match(pattern);
-    if (match) {
-      fileName = match[1];
-      console.log(`通过模式 ${pattern} 找到组件名: ${fileName}`);
-      break;
-    }
-  }
-
-  if (!fileName) {
-    throw new Error('无法提取组件名，请检查代码格式');
-  }
-
-  const filePath = path.join(componentsDir, `${fileName}.tsx`);
-  console.log(`准备保存到: ${filePath}`);
-
-  fs.writeFileSync(filePath, code, 'utf-8');
-  console.log(`组件成功保存到: ${filePath}`);
-  return fileName;
-};
-
-// 自动安装依赖
-const installDependencies = (code) => {
-  console.log('==== 检查依赖 ====');
-  const importRegex = /import .* from ['"](.*)['"]/g;
-  const dependencies = new Set();
-  let match;
-
-  while ((match = importRegex.exec(code)) !== null) {
-    const dep = match[1];
-    if (!dep.startsWith('.') && !dep.startsWith('@/')) {
-      dependencies.add(dep);
-    }
-  }
-
-  // 添加必要的核心依赖
-  dependencies.add('react');
-  dependencies.add('lucide-react');
-  dependencies.add('@types/react');
-  dependencies.add('@types/node');
-  dependencies.add('typescript');
-
-  if (dependencies.size > 0) {
-    console.log('检测到以下依赖:', [...dependencies]);
-    return new Promise((resolve, reject) => {
-      // 分别安装开发依赖和生产依赖
-      const devDependencies = ['@types/react', '@types/node', 'typescript'];
-      const prodDependencies = [...dependencies].filter(dep => !devDependencies.includes(dep));
-
-      // 先安装生产依赖
-      const installProd = new Promise((resolveProd, rejectProd) => {
-        if (prodDependencies.length > 0) {
-          exec(
-            `npm install ${prodDependencies.join(' ')}`,
-            { cwd: projectRoot },
-            (err, stdout, stderr) => {
-              if (err) {
-                console.error('生产依赖安装失败:', stderr);
-                rejectProd(err);
-              } else {
-                console.log('生产依赖安装成功:', stdout);
-                resolveProd();
-              }
-            }
-          );
-        } else {
-          resolveProd();
-        }
-      });
-
-      // 然后安装开发依赖
-      const installDev = new Promise((resolveDev, rejectDev) => {
-        if (devDependencies.length > 0) {
-          exec(
-            `npm install -D ${devDependencies.join(' ')}`,
-            { cwd: projectRoot },
-            (err, stdout, stderr) => {
-              if (err) {
-                console.error('开发依赖安装失败:', stderr);
-                rejectDev(err);
-              } else {
-                console.log('开发依赖安装成功:', stdout);
-                resolveDev();
-              }
-            }
-          );
-        } else {
-          resolveDev();
-        }
-      });
-
-      // 等待所有依赖安装完成
-      Promise.all([installProd, installDev])
-        .then(resolve)
-        .catch(reject);
-    });
-  }
-  return Promise.resolve();
-};
-
-// 更新 page.tsx
-const updatePage = (fileName) => {
-  console.log('==== 更新 page.tsx ====');
-  console.log(`准备添加组件: ${fileName}`);
-
-  // 新的页面模板
-  const newPageContent = `"use client";
+    const basicPageContent = `"use client";
 import { useState } from "react";
 import { Home, Info, Phone, Folder } from "lucide-react";
-import ${fileName} from "../components/${fileName}";
 
 const Sidebar = ({ currentComponent, setCurrentComponent }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -249,22 +81,13 @@ const Sidebar = ({ currentComponent, setCurrentComponent }) => {
           <Phone className="w-6 h-6" />
           {isHovered && <span>Contact</span>}
         </li>
-        <li
-          className={\`flex items-center space-x-2 hover:bg-gray-700 p-2 rounded \${
-            currentComponent === "${fileName}" ? "bg-gray-700" : ""
-          }\`}
-          onClick={() => setCurrentComponent("${fileName}")}
-        >
-          <Folder className="w-6 h-6" />
-          {isHovered && <span>Folder Structure</span>}
-        </li>
       </ul>
     </div>
   );
 };
 
 export default function Page() {
-  const [currentComponent, setCurrentComponent] = useState("${fileName}");
+  const [currentComponent, setCurrentComponent] = useState("Home");
 
   const renderComponent = () => {
     switch (currentComponent) {
@@ -274,12 +97,6 @@ export default function Page() {
         return <div className="p-4 text-lg">这是关于页面组件</div>;
       case "Contact":
         return <div className="p-4 text-lg">这是联系页面组件</div>;
-      case "${fileName}":
-        return (
-          <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
-            <${fileName} />
-          </div>
-        );
       default:
         return <div className="p-4 text-lg">未知组件</div>;
     }
@@ -298,26 +115,188 @@ export default function Page() {
       </main>
     </div>
   );
-}`;
+}
+`;
+    fs.writeFileSync(pagePath, basicPageContent, 'utf-8');
+    console.log('已创建基础版的 page.tsx');
+  }
+};
 
-  // 直接写入新的内容，而不是修改现有内容
-  fs.writeFileSync(pagePath, newPageContent, 'utf-8');
-  console.log('page.tsx 完全更新完成');
+// 从剪贴板读取代码
+const readClipboardCode = async () => {
+  console.log('==== 读取剪贴板 ====');
+  try {
+    const code = await clipboardy.read();
+    console.log('成功读取剪贴板内容，长度:', code.length);
+    console.log('代码前100个字符:', code.substring(0, 100));
+
+    if (!code.includes('export default')) {
+      throw new Error('代码中没有找到 export default 语句');
+    }
+
+    return code;
+  } catch (err) {
+    console.error('剪贴板读取错误:', err);
+    throw err;
+  }
+};
+
+// 保存组件到文件
+const saveClipboardCode = (code) => {
+  console.log('==== 保存组件文件 ====');
+
+  // 提取文件名的正则表达式
+  const patterns = [
+    /export default function (\w+)/,             // 匹配 'export default function ComponentName'
+    /const (\w+): React\.FC/,                    // 匹配 'const ComponentName: React.FC = () => {}'
+    /const (\w+) = \((.*)\) =>/,                 // 匹配 'const ComponentName = (...) =>'
+    /function (\w+)\(/,                          // 匹配 'function ComponentName('
+    /export default (\w+);/,                     // 匹配 'export default ComponentName;'
+  ];
+
+  let fileName = null;
+  for (const pattern of patterns) {
+    const match = code.match(pattern);
+    if (match) {
+      fileName = match[1];
+      console.log(`通过模式 ${pattern} 找到组件名: ${fileName}`);
+      break;
+    }
+  }
+
+  if (!fileName) {
+    throw new Error('无法提取组件名，请检查代码格式');
+  }
+
+  const filePath = path.join(componentsDir, `${fileName}.tsx`);
+  console.log(`准备保存到: ${filePath}`);
+
+  fs.writeFileSync(filePath, code, 'utf-8');
+  console.log(`组件成功保存到: ${filePath}`);
+  return fileName;
+};
+
+// 自动安装依赖
+const installDependencies = async (code) => {
+  console.log('==== 检查依赖 ====');
+  const importRegex = /import .* from ['"](.*)['"]/g;
+  const dependencies = new Set();
+  let match;
+
+  while ((match = importRegex.exec(code)) !== null) {
+    const dep = match[1];
+    if (!dep.startsWith('.') && !dep.startsWith('@/')) {
+      dependencies.add(dep);
+    }
+  }
+
+  // 检查已有的依赖
+  const packageJsonPath = path.join(projectRoot, 'package.json');
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+  const existingDependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
+
+  const devDependencies = ['@types/react', '@types/node', 'typescript'].filter(
+    (dep) => !existingDependencies[dep]
+  );
+  const prodDependencies = [...dependencies].filter((dep) => !existingDependencies[dep]);
+
+  if (prodDependencies.length > 0) {
+    console.log('需要安装以下生产依赖:', prodDependencies);
+    await new Promise((resolve, reject) => {
+      exec(
+        `npm install ${prodDependencies.join(' ')}`,
+        { cwd: projectRoot },
+        (err, stdout, stderr) => {
+          if (err) {
+            console.error('生产依赖安装失败:', stderr);
+            reject(err);
+          } else {
+            console.log('生产依赖安装成功:', stdout);
+            resolve();
+          }
+        }
+      );
+    });
+  }
+
+  if (devDependencies.length > 0) {
+    console.log('需要安装以下开发依赖:', devDependencies);
+    await new Promise((resolve, reject) => {
+      exec(
+        `npm install -D ${devDependencies.join(' ')}`,
+        { cwd: projectRoot },
+        (err, stdout, stderr) => {
+          if (err) {
+            console.error('开发依赖安装失败:', stderr);
+            reject(err);
+          } else {
+            console.log('开发依赖安装成功:', stdout);
+            resolve();
+          }
+        }
+      );
+    });
+  }
+};
+
+// 增量更新 page.tsx
+const updatePageIncrementally = (fileName) => {
+  console.log('==== 增量更新 page.tsx ====');
+  console.log(`准备添加组件: ${fileName}`);
+
+  let pageContent = fs.readFileSync(pagePath, 'utf-8');
+
+  // 添加 import 语句
+  const importStatement = `import ${fileName} from "../components/${fileName}";`;
+  if (!pageContent.includes(importStatement)) {
+    pageContent = pageContent.replace(/(import .* from .*;\s*)+/, (match) => {
+      return `${match}${importStatement}\n`;
+    });
+  }
+
+  // 更新 Sidebar
+  const sidebarPattern = /<ul className="p-4 space-y-4">([\s\S]*?)<\/ul>/;
+  const newSidebarItem = `
+          <li
+            className={\`flex items-center space-x-2 hover:bg-gray-700 p-2 rounded \${currentComponent === "${fileName}" ? "bg-gray-700" : ""}\`}
+            onClick={() => setCurrentComponent("${fileName}") }
+          >
+            <Folder className="w-6 h-6" />
+            {isHovered && <span>${fileName}</span>}
+          </li>`;
+  if (!pageContent.includes(`onClick={() => setCurrentComponent("${fileName}")}`)) {
+    pageContent = pageContent.replace(sidebarPattern, (match, p1) => {
+      return `<ul className="p-4 space-y-4">${p1.trim()}${newSidebarItem}\n        </ul>`;
+    });
+  }
+
+  // 更新 renderComponent
+  const renderPattern = /switch \(currentComponent\) \{([\s\S]*?)\n\s+default:/;
+  const newRenderCase = `      case "${fileName}":
+        return (
+          <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
+            <${fileName} />
+          </div>
+        );\n`;
+  if (!pageContent.includes(`case "${fileName}":`)) {
+    pageContent = pageContent.replace(renderPattern, (match, p1) => {
+      return `switch (currentComponent) {${p1}\n${newRenderCase}      default:`;
+    });
+  }
+
+  fs.writeFileSync(pagePath, pageContent, 'utf-8');
+  console.log('page.tsx 已增量更新完成');
 };
 
 // 启动开发服务器
 const startServer = () => {
   console.log('==== 启动开发服务器 ====');
-  return new Promise((resolve, reject) => {
-    exec('npm run dev', { cwd: projectRoot }, (err, stdout, stderr) => {
-      if (err) {
-        console.error('开发服务器启动失败:', stderr);
-        reject(err);
-      } else {
-        console.log('开发服务器输出:', stdout);
-        resolve();
-      }
-    });
+  exec('npm run dev', { cwd: projectRoot }, (err, stdout, stderr) => {
+    if (err) {
+      console.error('开发服务器启动失败:', stderr);
+    } else {
+      console.log('开发服务器已启动');
+    }
   });
 };
 
@@ -327,7 +306,7 @@ const main = async () => {
     console.log('==== 开始处理 ====');
 
     // 检查项目结构
-    await checkProjectStructure();
+    checkProjectStructure();
 
     // 读取剪贴板
     const clipboardCode = await readClipboardCode();
@@ -339,11 +318,10 @@ const main = async () => {
     await installDependencies(clipboardCode);
 
     // 更新页面
-    updatePage(fileName);
+    updatePageIncrementally(fileName);
 
-    // 延迟启动服务器
-    console.log('等待 5 秒后启动服务器...');
-    setTimeout(() => startServer(), 5000);
+    // 启动服务器
+    startServer();
 
     console.log('==== 处理完成 ====');
   } catch (error) {
