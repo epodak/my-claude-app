@@ -1,8 +1,10 @@
 "use client";
 import { useState } from "react";
 import { Home, Info, Phone, Folder, Trash2 } from "lucide-react";
-import TodoList from "../components/TodoList";
 import EnhancedTodoList from "../components/EnhancedTodoList";
+import PomodoroTimer from "../components/PomodoroTimer";
+import TodoList from "../components/TodoList";
+import TodoWithPomodoro from "../components/TodoWithPomodoro";
 
 const Sidebar = ({ currentComponent, setCurrentComponent }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -46,6 +48,46 @@ const Sidebar = ({ currentComponent, setCurrentComponent }) => {
         
         <li
           className={`flex items-center justify-between hover:bg-gray-700 p-2 rounded ${
+            currentComponent === "EnhancedTodoList" ? "bg-gray-700" : ""
+          }`}
+          onClick={() => setCurrentComponent("EnhancedTodoList")}
+        >
+          <div className="flex items-center space-x-2">
+            <Folder className="w-6 h-6" />
+            {isHovered && <span>EnhancedTodoList</span>}
+          </div>
+          {isHovered && (
+            <button
+              onClick={(e) => handleUninstall("EnhancedTodoList", e)}
+              className="p-1 rounded-full hover:bg-red-500 transition-colors duration-200"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </li>
+
+        <li
+          className={`flex items-center justify-between hover:bg-gray-700 p-2 rounded ${
+            currentComponent === "PomodoroTimer" ? "bg-gray-700" : ""
+          }`}
+          onClick={() => setCurrentComponent("PomodoroTimer")}
+        >
+          <div className="flex items-center space-x-2">
+            <Folder className="w-6 h-6" />
+            {isHovered && <span>PomodoroTimer</span>}
+          </div>
+          {isHovered && (
+            <button
+              onClick={(e) => handleUninstall("PomodoroTimer", e)}
+              className="p-1 rounded-full hover:bg-red-500 transition-colors duration-200"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </li>
+
+        <li
+          className={`flex items-center justify-between hover:bg-gray-700 p-2 rounded ${
             currentComponent === "TodoList" ? "bg-gray-700" : ""
           }`}
           onClick={() => setCurrentComponent("TodoList")}
@@ -66,17 +108,17 @@ const Sidebar = ({ currentComponent, setCurrentComponent }) => {
 
         <li
           className={`flex items-center justify-between hover:bg-gray-700 p-2 rounded ${
-            currentComponent === "EnhancedTodoList" ? "bg-gray-700" : ""
+            currentComponent === "TodoWithPomodoro" ? "bg-gray-700" : ""
           }`}
-          onClick={() => setCurrentComponent("EnhancedTodoList")}
+          onClick={() => setCurrentComponent("TodoWithPomodoro")}
         >
           <div className="flex items-center space-x-2">
             <Folder className="w-6 h-6" />
-            {isHovered && <span>EnhancedTodoList</span>}
+            {isHovered && <span>TodoWithPomodoro</span>}
           </div>
           {isHovered && (
             <button
-              onClick={(e) => handleUninstall("EnhancedTodoList", e)}
+              onClick={(e) => handleUninstall("TodoWithPomodoro", e)}
               className="p-1 rounded-full hover:bg-red-500 transition-colors duration-200"
             >
               <Trash2 className="w-4 h-4" />
@@ -96,6 +138,20 @@ export default function Page() {
       case "Home":
         return <div className="p-4 text-lg">这是首页组件</div>;
       
+      case "EnhancedTodoList":
+        return (
+          <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
+            <EnhancedTodoList />
+          </div>
+        );
+
+      case "PomodoroTimer":
+        return (
+          <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
+            <PomodoroTimer />
+          </div>
+        );
+
       case "TodoList":
         return (
           <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
@@ -103,10 +159,10 @@ export default function Page() {
           </div>
         );
 
-      case "EnhancedTodoList":
+      case "TodoWithPomodoro":
         return (
           <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
-            <EnhancedTodoList />
+            <TodoWithPomodoro />
           </div>
         );
       default:

@@ -40,6 +40,9 @@ backgroundColor: #D0E8D6DA
    - 运行 `python3 gpage.py`
    - 检查组件是否正确加载
 
+### TODO
+- [ ] 隐藏组件功能,隐藏但不是删除
+
 ### 开发规范
 
 1. **样式规范**
