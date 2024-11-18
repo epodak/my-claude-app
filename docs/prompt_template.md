@@ -5,88 +5,153 @@
 ```markdown
 我正在使用Next.js + React开发一个组件库项目。请你帮我创建一个[组件名称]组件，需要满足以下要求：
 
+基础要求：
 1. 使用 TypeScript + Tailwind CSS
 2. 必须包含 "export default" 语句
-3. 不使用外部样式文件，所有样式使用Tailwind或内联style
-4. 如果需要3D效果，请使用内联style确保transform-style: preserve-3d生效
-5. 只使用基础的Tailwind类，不要使用自定义值(如h-[500px])
-6. 组件必须是独立的，不依赖外部状态管理
-7. 所有动画效果使用CSS transition或transform实现
-8. 任何图标请使用lucide-react库
-9. 如果需要图表，请使用recharts
-10. 代码结构清晰，便于维护
+3. 代码结构清晰，便于维护
+4. 组件必须是独立的，不依赖全局状态管理
+5. 如果需要3D效果，请使用内联style确保transform-style: preserve-3d生效
 
-技术要求：
-- React 18
-- Next.js 14
+可用技术栈：
+- React 18 + Next.js 14
 - TypeScript
 - Tailwind CSS
-- lucide-react用于图标
-- recharts用于图表(如需要)
+- shadcn/ui 组件库
+- lucide-react 图标库
+- recharts 图表库
+- Zod 数据验证
+- React Hook Form
+- 其他常用npm包（会自动安装）
 
-请生成完整的组件代码，确保代码可以直接复制使用。
+数据持久化：
+- 需要持久化的数据使用localStorage存储
+- 实现数据自动过期（默认7天）
+- 包含数据版本控制
+- 提供错误处理机制
+
+样式指南：
+1. 优先使用Tailwind CSS
+2. 可以使用shadcn/ui组件进行快速构建
+3. 可以添加自定义动画和过渡效果
+4. 响应式设计支持移动端和桌面端
+
+请生成完整的组件代码，确保代码可以直接复制使用，无需额外配置。
 ```
 
-## 示例：请求3D翻转卡片组件
+## 工具函数模板
+
+### LocalStorage持久化Hook
+```typescript
+import { useState, useEffect } from 'react';
+import { z } from 'zod'; // 可选的数据验证
+
+interface StorageOptions {
+  expiresIn?: number;
+  version?: string;
+}
+
+const useLocalStorage = <T>(key: string, initialValue: T, options?: StorageOptions) => {
+  // ...实现逻辑
+};
+```
+
+### 表单处理（使用React Hook Form）
+```typescript
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+// 表单schema示例
+const formSchema = z.object({
+  // ...字段定义
+});
+```
+
+## 示例：请求卡片组件
 
 ```markdown
-使用上述模板，我需要一个3D翻转卡片组件，具体要求：
+使用上述模板，我需要一个交互式卡片组件，具体要求：
 
-1. 鼠标悬停时实现平滑的3D翻转效果
-2. 正面显示标题和简介
-3. 背面显示详细信息
-4. 使用渐变背景
-5. 添加适当的图标装饰
-6. 响应式设计适配不同屏幕
+1. 使用shadcn/ui的Card组件作为基础
+2. 包含标题、描述和操作按钮
+3. 添加过渡动画效果
+4. 支持响应式布局
+5. 记住用户的操作状态（7天有效）
+6. 支持暗色主题
 
-请生成符合要求的完整组件代码。
+可以使用的其他依赖：
+- @/components/ui/card
+- @/components/ui/button
+- 其他shadcn组件
 ```
 
 ## 组件代码规范检查清单
 
-生成的代码应该检查以下几点：
-
-✅ 导出语句检查：
+✅ 基础检查：
 - 是否包含正确的export default语句
-- 是否使用了正确的组件命名
+- TypeScript类型定义是否完整
+- 组件命名是否规范
 
-✅ TypeScript类型检查：
-- 是否定义了必要的类型接口
-- 是否正确使用了React.FC或function组件声明
+✅ 依赖使用：
+- shadcn/ui组件使用是否恰当
+- 外部依赖导入是否正确
+- 是否使用了推荐的工具库
 
-✅ 样式规范检查：
-- 是否只使用了Tailwind基础类
-- 是否避免使用自定义值
-- 3D效果是否使用了正确的内联样式
+✅ 数据处理：
+- localStorage使用是否规范
+- 是否实现了数据过期机制
+- 是否有适当的错误处理
 
-✅ 依赖检查：
-- 是否只使用了允许的外部依赖
-- 是否正确导入了所需的组件和图标
-
-✅ 响应式设计：
-- 是否考虑了不同屏幕尺寸
-- 是否使用了Tailwind的响应式类
+✅ 样式规范：
+- Tailwind类使用是否合理
+- 响应式设计是否完善
+- 动画效果是否流畅
 
 ## 组织结构建议
 
-生成的组件应遵循以下结构：
-
 ```typescript
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { 需要的图标 } from 'lucide-react';
+
+// shadcn/ui组件
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 // 类型定义
 interface ComponentProps {
   // props类型
 }
 
+// 数据验证Schema
+const dataSchema = z.object({
+  // 数据结构定义
+});
+
 // 组件实现
 const ComponentName: React.FC<ComponentProps> = ({ props }) => {
-  // 状态声明
+  // 表单处理
+  const form = useForm({
+    resolver: zodResolver(dataSchema),
+    defaultValues: {}
+  });
 
-  // 事件处理函数
+  // 持久化存储
+  const [storedData, setStoredData] = useLocalStorage('key', initialValue, {
+    expiresIn: 7 * 24 * 60 * 60 * 1000
+  });
 
-  // 渲染逻辑
+  // 组件逻辑
+
   return (
     // JSX结构
   );
@@ -95,40 +160,84 @@ const ComponentName: React.FC<ComponentProps> = ({ props }) => {
 export default ComponentName;
 ```
 
+## 常见功能实现示例
+
+1. **表单验证与提交**:
+```typescript
+const formSchema = z.object({
+  title: z.string().min(2).max(50),
+  description: z.string().optional()
+});
+
+const form = useForm<z.infer<typeof formSchema>>({
+  resolver: zodResolver(formSchema)
+});
+```
+
+2. **主题切换**:
+```typescript
+function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <Button
+      variant="ghost"
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+    >
+      <SunIcon className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <MoonIcon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+    </Button>
+  );
+}
+```
+
+3. **响应式对话框**:
+```typescript
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+
+function ResponsiveDialog() {
+  return (
+    <Dialog>
+      <DialogTrigger>Open</DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Dialog Title</DialogTitle>
+          <DialogDescription>
+            Dialog Description
+          </DialogDescription>
+        </DialogHeader>
+      </DialogContent>
+    </Dialog>
+  );
+}
+```
+
 ## 测试和验证
 
-每个生成的组件都应该：
+1. 功能测试：
+   - 组件渲染是否正常
+   - 交互功能是否正确
+   - 数据持久化是否生效
+   - 表单验证是否有效
 
-1. 可以独立运行，不依赖外部状态
-2. 样式正确，动画流畅
-3. 响应式布局正常
-4. 没有控制台错误
-5. TypeScript类型完整
+2. 样式测试：
+   - 响应式布局
+   - 暗色主题支持
+   - 动画效果
+   - 可访问性
 
-## 常见问题解决方案
-
-1. 3D效果不生效：
-   ```javascript
-   const styles = {
-     cardContainer: {
-       perspective: '1000px',
-       transformStyle: 'preserve-3d'
-     }
-   };
-   ```
-
-2. 动画卡顿：
-   ```javascript
-   // 使用transform而不是position
-   transition: 'transform 0.6s',
-   transform: isFlipped ? 'rotateY(180deg)' : ''
-   ```
-
-3. 响应式问题：
-   ```jsx
-   <div className="w-full md:w-96 lg:w-120">
-   ```
+3. 性能测试：
+   - 组件重渲染优化
+   - 数据处理效率
+   - 本地存储使用情况
 
 ---
 
-*请根据此模板生成组件，确保代码质量和可维护性。*
+*使用此模板可以快速构建功能完整、性能可靠的React组件。模板支持各种现代开发工具和库，可根据具体需求灵活调整。*

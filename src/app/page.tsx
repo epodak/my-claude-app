@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { Home, Info, Phone, Folder, Trash2 } from "lucide-react";
-import FlipCard from "../components/FlipCard";
+import TodoList from "../components/TodoList";
+import EnhancedTodoList from "../components/EnhancedTodoList";
 
 const Sidebar = ({ currentComponent, setCurrentComponent }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -45,17 +46,37 @@ const Sidebar = ({ currentComponent, setCurrentComponent }) => {
         
         <li
           className={`flex items-center justify-between hover:bg-gray-700 p-2 rounded ${
-            currentComponent === "FlipCard" ? "bg-gray-700" : ""
+            currentComponent === "TodoList" ? "bg-gray-700" : ""
           }`}
-          onClick={() => setCurrentComponent("FlipCard")}
+          onClick={() => setCurrentComponent("TodoList")}
         >
           <div className="flex items-center space-x-2">
             <Folder className="w-6 h-6" />
-            {isHovered && <span>FlipCard</span>}
+            {isHovered && <span>TodoList</span>}
           </div>
           {isHovered && (
             <button
-              onClick={(e) => handleUninstall("FlipCard", e)}
+              onClick={(e) => handleUninstall("TodoList", e)}
+              className="p-1 rounded-full hover:bg-red-500 transition-colors duration-200"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </li>
+
+        <li
+          className={`flex items-center justify-between hover:bg-gray-700 p-2 rounded ${
+            currentComponent === "EnhancedTodoList" ? "bg-gray-700" : ""
+          }`}
+          onClick={() => setCurrentComponent("EnhancedTodoList")}
+        >
+          <div className="flex items-center space-x-2">
+            <Folder className="w-6 h-6" />
+            {isHovered && <span>EnhancedTodoList</span>}
+          </div>
+          {isHovered && (
+            <button
+              onClick={(e) => handleUninstall("EnhancedTodoList", e)}
               className="p-1 rounded-full hover:bg-red-500 transition-colors duration-200"
             >
               <Trash2 className="w-4 h-4" />
@@ -75,10 +96,17 @@ export default function Page() {
       case "Home":
         return <div className="p-4 text-lg">这是首页组件</div>;
       
-      case "FlipCard":
+      case "TodoList":
         return (
           <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
-            <FlipCard />
+            <TodoList />
+          </div>
+        );
+
+      case "EnhancedTodoList":
+        return (
+          <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
+            <EnhancedTodoList />
           </div>
         );
       default:
