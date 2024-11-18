@@ -1,4 +1,5 @@
-// 请确保你的脚本文件名为 setup-claude.mjs
+// setup-claude.mjs
+
 import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
@@ -18,14 +19,23 @@ const findProjectRoot = () => {
 
 const projectRoot = findProjectRoot();
 const componentsDir = path.join(projectRoot, 'src', 'components');
+const archiveDir = path.join(componentsDir, 'Archive');
 const pagePath = path.join(projectRoot, 'src', 'app', 'page.tsx');
+const apiRouteDir = path.join(projectRoot, 'src', 'app', 'api', 'uninstall');
+const apiRoutePath = path.join(apiRouteDir, 'route.ts');
 
-// 检查项目结构
+// 获取命令行参数
+const args = process.argv.slice(2);
+const action = args[0]; // 'install' or 'uninstall'
+let componentName = args[1]; // 组件名称（卸载时需要）
+
+// 检查项目结构并创建必要的文件
 const checkProjectStructure = () => {
   console.log('==== 检查项目结构 ====');
   console.log(`项目根目录: ${projectRoot}`);
   console.log(`组件目录: ${componentsDir}`);
   console.log(`页面文件: ${pagePath}`);
+  console.log(`API 路由文件: ${apiRoutePath}`);
 
   if (!fs.existsSync(projectRoot)) {
     throw new Error(`项目根目录不存在: ${projectRoot}`);
@@ -39,12 +49,69 @@ const checkProjectStructure = () => {
 
   if (!fs.existsSync(pagePath)) {
     console.log('page.tsx 不存在，将创建基础版本...');
-    const basicPageContent = `"use client";
+    createBasicPage();
+  }
+
+  if (!fs.existsSync(apiRoutePath)) {
+    console.log('API 路由文件不存在，将创建...');
+    createApiRoute();
+  }
+};
+
+const scanComponentsDirectory = () => {
+  console.log('==== 扫描组件目录 ====');
+  const components = [];
+
+  // 读取 components 目录下的所有 .tsx 文件
+  const files = fs.readdirSync(componentsDir);
+  for (const file of files) {
+    const fullPath = path.join(componentsDir, file);
+    // 排除 Archive 目录和其他目录
+    if (file.endsWith('.tsx') &&
+        !fs.lstatSync(fullPath).isDirectory() &&
+        !fullPath.includes('Archive')) {
+      const componentName = file.replace('.tsx', '');
+      components.push(componentName);
+      console.log(`找到组件: ${componentName}`);
+    }
+  }
+
+  return components;
+};
+
+
+// 创建基础的 page.tsx 模板
+const createBasicPage = (components = []) => {
+  const importStatements = components.map(name =>
+    `import ${name} from "../components/${name}";`
+  ).join('\n');
+
+  const basicPageContent = `"use client";
 import { useState } from "react";
-import { Home, Info, Phone, Folder } from "lucide-react";
+import { Home, Info, Phone, Folder, Trash2 } from "lucide-react";
+${importStatements}
 
 const Sidebar = ({ currentComponent, setCurrentComponent }) => {
   const [isHovered, setIsHovered] = useState(false);
+
+  const handleUninstall = async (componentName, e) => {
+    e.stopPropagation();
+    if (confirm(\`确定要卸载组件 \${componentName} 吗？\`)) {
+      try {
+        const response = await fetch('/api/uninstall', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ componentName })
+        });
+        if (response.ok) {
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error('卸载失败:', error);
+      }
+    }
+  };
+
   return (
     <div
       className={\`fixed top-0 left-0 h-full bg-gray-800 text-white transition-all duration-300 \${
@@ -63,24 +130,26 @@ const Sidebar = ({ currentComponent, setCurrentComponent }) => {
           <Home className="w-6 h-6" />
           {isHovered && <span>Home</span>}
         </li>
+        ${components.map(name => `
         <li
-          className={\`flex items-center space-x-2 hover:bg-gray-700 p-2 rounded \${
-            currentComponent === "About" ? "bg-gray-700" : ""
+          className={\`flex items-center justify-between hover:bg-gray-700 p-2 rounded \${
+            currentComponent === "${name}" ? "bg-gray-700" : ""
           }\`}
-          onClick={() => setCurrentComponent("About")}
+          onClick={() => setCurrentComponent("${name}")}
         >
-          <Info className="w-6 h-6" />
-          {isHovered && <span>About</span>}
-        </li>
-        <li
-          className={\`flex items-center space-x-2 hover:bg-gray-700 p-2 rounded \${
-            currentComponent === "Contact" ? "bg-gray-700" : ""
-          }\`}
-          onClick={() => setCurrentComponent("Contact")}
-        >
-          <Phone className="w-6 h-6" />
-          {isHovered && <span>Contact</span>}
-        </li>
+          <div className="flex items-center space-x-2">
+            <Folder className="w-6 h-6" />
+            {isHovered && <span>${name}</span>}
+          </div>
+          {isHovered && (
+            <button
+              onClick={(e) => handleUninstall("${name}", e)}
+              className="p-1 rounded-full hover:bg-red-500 transition-colors duration-200"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+        </li>`).join('\n')}
       </ul>
     </div>
   );
@@ -93,10 +162,13 @@ export default function Page() {
     switch (currentComponent) {
       case "Home":
         return <div className="p-4 text-lg">这是首页组件</div>;
-      case "About":
-        return <div className="p-4 text-lg">这是关于页面组件</div>;
-      case "Contact":
-        return <div className="p-4 text-lg">这是联系页面组件</div>;
+      ${components.map(name => `
+      case "${name}":
+        return (
+          <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
+            <${name} />
+          </div>
+        );`).join('\n')}
       default:
         return <div className="p-4 text-lg">未知组件</div>;
     }
@@ -104,12 +176,10 @@ export default function Page() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* 侧边栏 */}
       <Sidebar
         currentComponent={currentComponent}
         setCurrentComponent={setCurrentComponent}
       />
-      {/* 主内容区域 */}
       <main className="ml-16 p-8">
         {renderComponent()}
       </main>
@@ -117,23 +187,60 @@ export default function Page() {
   );
 }
 `;
-    fs.writeFileSync(pagePath, basicPageContent, 'utf-8');
-    console.log('已创建基础版的 page.tsx');
-  }
+
+  fs.writeFileSync(pagePath, basicPageContent, 'utf-8');
+  console.log('已创建基础版的 page.tsx');
 };
 
-// 从剪贴板读取代码
+// 创建 API 路由文件
+const createApiRoute = () => {
+  // 确保目录存在
+  fs.mkdirSync(apiRouteDir, { recursive: true });
+
+  const apiRouteContent = `import { NextResponse } from 'next/server';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import path from 'path';
+
+const execAsync = promisify(exec);
+
+// 定义允许的组件名称正则表达式，防止命令注入
+const allowedComponentNameRegex = /^[a-zA-Z0-9_-]+$/;
+
+export async function POST(req: Request) {
+  try {
+    const { componentName } = await req.json();
+
+    // 验证组件名称
+    if (!allowedComponentNameRegex.test(componentName)) {
+      return NextResponse.json({ success: false, error: '非法的组件名称' }, { status: 400 });
+    }
+
+    // 获取脚本的绝对路径，防止路径问题
+    const scriptPath = path.join(process.cwd(), 'setup-claude.mjs');
+
+    // 执行卸载命令，使用参数数组，避免命令注入
+    await execAsync(\`node \${scriptPath} uninstall \${componentName}\`);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('卸载失败:', error);
+    return NextResponse.json({ success: false, error: 'Uninstall failed' }, { status: 500 });
+  }
+}
+`;
+  fs.writeFileSync(apiRoutePath, apiRouteContent, 'utf-8');
+  console.log('已创建 API 路由文件: route.ts');
+};
+
+// 读取剪贴板代码
 const readClipboardCode = async () => {
   console.log('==== 读取剪贴板 ====');
   try {
     const code = await clipboardy.read();
-    console.log('成功读取剪贴板内容，长度:', code.length);
-    console.log('代码前100个字符:', code.substring(0, 100));
-
     if (!code.includes('export default')) {
       throw new Error('代码中没有找到 export default 语句');
     }
-
     return code;
   } catch (err) {
     console.error('剪贴板读取错误:', err);
@@ -141,17 +248,15 @@ const readClipboardCode = async () => {
   }
 };
 
-// 保存组件到文件
-const saveClipboardCode = (code) => {
-  console.log('==== 保存组件文件 ====');
-
-  // 提取文件名的正则表达式
+// 提取组件名
+const extractComponentName = (code) => {
+  console.log('==== 提取组件名 ====');
   const patterns = [
-    /export default function (\w+)/,             // 匹配 'export default function ComponentName'
-    /const (\w+): React\.FC/,                    // 匹配 'const ComponentName: React.FC = () => {}'
-    /const (\w+) = \((.*)\) =>/,                 // 匹配 'const ComponentName = (...) =>'
-    /function (\w+)\(/,                          // 匹配 'function ComponentName('
-    /export default (\w+);/,                     // 匹配 'export default ComponentName;'
+    /export default function (\w+)/,
+    /const (\w+): React\.FC/,
+    /const (\w+) = \((.*)\) =>/,
+    /function (\w+)\(/,
+    /export default (\w+);/,
   ];
 
   let fileName = null;
@@ -168,12 +273,15 @@ const saveClipboardCode = (code) => {
     throw new Error('无法提取组件名，请检查代码格式');
   }
 
-  const filePath = path.join(componentsDir, `${fileName}.tsx`);
-  console.log(`准备保存到: ${filePath}`);
+  return fileName;
+};
 
+// 保存组件到文件
+const saveComponentCode = (code, fileName) => {
+  console.log('==== 保存组件文件 ====');
+  const filePath = path.join(componentsDir, `${fileName}.tsx`);
   fs.writeFileSync(filePath, code, 'utf-8');
   console.log(`组件成功保存到: ${filePath}`);
-  return fileName;
 };
 
 // 自动安装依赖
@@ -246,46 +354,53 @@ const updatePageIncrementally = (fileName) => {
 
   let pageContent = fs.readFileSync(pagePath, 'utf-8');
 
-  // 添加 import 语句
-  const importStatement = `import ${fileName} from "../components/${fileName}";`;
-  if (!pageContent.includes(importStatement)) {
-    pageContent = pageContent.replace(/(import .* from .*;\s*)+/, (match) => {
-      return `${match}${importStatement}\n`;
-    });
-  }
-
-  // 更新 Sidebar
-  const sidebarPattern = /<ul className="p-4 space-y-4">([\s\S]*?)<\/ul>/;
-  const newSidebarItem = `
-          <li
-            className={\`flex items-center space-x-2 hover:bg-gray-700 p-2 rounded \${currentComponent === "${fileName}" ? "bg-gray-700" : ""}\`}
-            onClick={() => setCurrentComponent("${fileName}") }
-          >
-            <Folder className="w-6 h-6" />
-            {isHovered && <span>${fileName}</span>}
-          </li>`;
-  if (!pageContent.includes(`onClick={() => setCurrentComponent("${fileName}")}`)) {
-    pageContent = pageContent.replace(sidebarPattern, (match, p1) => {
-      return `<ul className="p-4 space-y-4">${p1.trim()}${newSidebarItem}\n        </ul>`;
-    });
-  }
-
-  // 更新 renderComponent
-  const renderPattern = /switch \(currentComponent\) \{([\s\S]*?)\n\s+default:/;
-  const newRenderCase = `      case "${fileName}":
-        return (
-          <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
-            <${fileName} />
-          </div>
-        );\n`;
-  if (!pageContent.includes(`case "${fileName}":`)) {
-    pageContent = pageContent.replace(renderPattern, (match, p1) => {
-      return `switch (currentComponent) {${p1}\n${newRenderCase}      default:`;
-    });
+  // 更新 dynamicComponents 初始状态
+  if (!pageContent.includes(`components.add("${fileName}");`)) {
+    pageContent = pageContent.replace(
+      /const \[dynamicComponents, setDynamicComponents\] = useState\(\(\) => \{([\s\S]*?)\}\);/,
+      (match, p1) => {
+        const newInitialization = `${p1.trim()}\n  components.add("${fileName}");\n  return components;`;
+        return `const [dynamicComponents, setDynamicComponents] = useState(() => {${newInitialization}\n});`;
+      }
+    );
   }
 
   fs.writeFileSync(pagePath, pageContent, 'utf-8');
   console.log('page.tsx 已增量更新完成');
+};
+
+// 卸载组件
+const uninstallComponent = (componentName) => {
+  console.log('==== 卸载组件 ====');
+  console.log(`准备卸载组件: ${componentName}`);
+
+  try {
+    // 移动组件文件到 Archive 文件夹
+    const componentFilePath = path.join(componentsDir, `${componentName}.tsx`);
+    if (!fs.existsSync(componentFilePath)) {
+      throw new Error(`组件文件不存在: ${componentFilePath}`);
+    }
+
+    if (!fs.existsSync(archiveDir)) {
+      fs.mkdirSync(archiveDir);
+    }
+    const archiveFilePath = path.join(archiveDir, `${componentName}.tsx`);
+    fs.renameSync(componentFilePath, archiveFilePath);
+    console.log(`✅ 组件文件已移动到: ${archiveFilePath}`);
+
+    // 重新扫描组件目录获取最新的组件列表
+    const remainingComponents = scanComponentsDirectory();
+    console.log('剩余组件:', remainingComponents);
+
+    // 使用剩余组件重新生成 page.tsx
+    createBasicPage(remainingComponents);
+    console.log('✅ page.tsx 已更新，组件已完全移除');
+
+    return true;
+  } catch (error) {
+    console.error('❌ 卸载组件失败:', error.message);
+    return false;
+  }
 };
 
 // 启动开发服务器
@@ -308,20 +423,39 @@ const main = async () => {
     // 检查项目结构
     checkProjectStructure();
 
-    // 读取剪贴板
-    const clipboardCode = await readClipboardCode();
+    if (action === 'uninstall') {
+      if (!componentName) {
+        console.error('请提供要卸载的组件名称');
+        process.exit(1);
+      }
+      uninstallComponent(componentName);
+    } else {
+      // 扫描现有组件
+      const existingComponents = scanComponentsDirectory();
 
-    // 保存组件
-    const fileName = saveClipboardCode(clipboardCode);
+      // 读取剪贴板中的新组件
+      try {
+        const clipboardCode = await readClipboardCode();
+        const newComponentName = extractComponentName(clipboardCode);
 
-    // 安装依赖
-    await installDependencies(clipboardCode);
+        // 保存新组件
+        saveComponentCode(clipboardCode, newComponentName);
+        await installDependencies(clipboardCode);
 
-    // 更新页面
-    updatePageIncrementally(fileName);
+        // 添加到组件列表
+        if (!existingComponents.includes(newComponentName)) {
+          existingComponents.push(newComponentName);
+        }
+      } catch (error) {
+        console.log('剪贴板中没有新组件，继续处理现有组件');
+      }
 
-    // 启动服务器
-    startServer();
+      // 重新生成 page.tsx
+      createBasicPage(existingComponents);
+
+      // 启动服务器
+      startServer();
+    }
 
     console.log('==== 处理完成 ====');
   } catch (error) {
