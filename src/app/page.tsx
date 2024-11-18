@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Home, Info, Phone, Folder, Trash2 } from "lucide-react";
 import EnhancedTodoList from "../components/EnhancedTodoList";
 import PomodoroTimer from "../components/PomodoroTimer";
-import TodoList from "../components/TodoList";
 import TodoWithPomodoro from "../components/TodoWithPomodoro";
 
 const Sidebar = ({ currentComponent, setCurrentComponent }) => {
@@ -88,26 +87,6 @@ const Sidebar = ({ currentComponent, setCurrentComponent }) => {
 
         <li
           className={`flex items-center justify-between hover:bg-gray-700 p-2 rounded ${
-            currentComponent === "TodoList" ? "bg-gray-700" : ""
-          }`}
-          onClick={() => setCurrentComponent("TodoList")}
-        >
-          <div className="flex items-center space-x-2">
-            <Folder className="w-6 h-6" />
-            {isHovered && <span>TodoList</span>}
-          </div>
-          {isHovered && (
-            <button
-              onClick={(e) => handleUninstall("TodoList", e)}
-              className="p-1 rounded-full hover:bg-red-500 transition-colors duration-200"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          )}
-        </li>
-
-        <li
-          className={`flex items-center justify-between hover:bg-gray-700 p-2 rounded ${
             currentComponent === "TodoWithPomodoro" ? "bg-gray-700" : ""
           }`}
           onClick={() => setCurrentComponent("TodoWithPomodoro")}
@@ -149,13 +128,6 @@ export default function Page() {
         return (
           <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
             <PomodoroTimer />
-          </div>
-        );
-
-      case "TodoList":
-        return (
-          <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
-            <TodoList />
           </div>
         );
 
