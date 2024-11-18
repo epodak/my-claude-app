@@ -1,10 +1,13 @@
+// src/app/page.tsx
 "use client";
+
 import { useState } from "react";
 import { Home, Info, Phone, Folder } from "lucide-react";
 import FolderStructureLayout from "../components/FolderStructureLayout";
 
 const Sidebar = ({ currentComponent, setCurrentComponent }) => {
   const [isHovered, setIsHovered] = useState(false);
+
   return (
     <div
       className={`fixed top-0 left-0 h-full bg-gray-800 text-white transition-all duration-300 ${
@@ -56,7 +59,7 @@ const Sidebar = ({ currentComponent, setCurrentComponent }) => {
 };
 
 export default function Page() {
-  const [currentComponent, setCurrentComponent] = useState("FolderStructureLayout");
+  const [currentComponent, setCurrentComponent] = useState("FolderStructureLayout"); // 默认显示的组件
 
   const renderComponent = () => {
     switch (currentComponent) {
@@ -67,27 +70,19 @@ export default function Page() {
       case "Contact":
         return <div className="p-4 text-lg">这是联系页面组件</div>;
       case "FolderStructureLayout":
-        return (
-          <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
-            <FolderStructureLayout />
-          </div>
-        );
+        return <FolderStructureLayout />;
       default:
         return <div className="p-4 text-lg">未知组件</div>;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex">
       {/* 侧边栏 */}
-      <Sidebar
-        currentComponent={currentComponent}
-        setCurrentComponent={setCurrentComponent}
-      />
+      <Sidebar currentComponent={currentComponent} setCurrentComponent={setCurrentComponent} />
+
       {/* 主内容区域 */}
-      <main className="ml-16 p-8">
-        {renderComponent()}
-      </main>
+      <main className="ml-16 p-4 transition-all duration-300 flex-1">{renderComponent()}</main>
     </div>
   );
 }
