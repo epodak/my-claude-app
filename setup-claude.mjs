@@ -161,16 +161,16 @@ export default function Page() {
   const renderComponent = () => {
     switch (currentComponent) {
       case "Home":
-        return <div className="p-4 text-lg">这是首页组件</div>;
+        return <div className="h-full w-full p-4 text-lg">这是首页组件</div>;
       ${components.map(name => `
       case "${name}":
         return (
-          <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg">
+          <div className="h-full w-full">
             <${name} />
           </div>
         );`).join('\n')}
       default:
-        return <div className="p-4 text-lg">未知组件</div>;
+        return <div className="h-full w-full p-4 text-lg">未知组件</div>;
     }
   };
 
@@ -180,7 +180,7 @@ export default function Page() {
         currentComponent={currentComponent}
         setCurrentComponent={setCurrentComponent}
       />
-      <main className="ml-16 p-8">
+      <main className="h-[calc(100vh-2rem)] ml-16 p-8">
         {renderComponent()}
       </main>
     </div>
