@@ -60,7 +60,7 @@ def kill_node_processes():
 
 def main():
     # 项目路径
-    project_path = r"D:\1\my-claude-app"
+    project_path = r"D:\1\my-claude-app\main"
     script_path = os.path.join(project_path, "setup-claude.mjs")
 
     # 确保路径存在
