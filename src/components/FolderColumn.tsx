@@ -26,38 +26,30 @@ interface FolderRelations {
 // API 类
 class FolderAPI {
   private baseUrl: string;
-  private port: number | null = null;
 
   constructor() {
-    this.baseUrl = API_BASE_URL;
-  }
-
-  async initialize(): Promise<void> {
-    try {
-      const response = await fetch('/api/port');
-      if (!response.ok) throw new Error('Failed to get port');
-      const data = await response.json();
-      this.port = data.port;
-      this.baseUrl = `http://localhost:${this.port}`;
-    } catch (error) {
-      console.error('Failed to initialize API:', error);
-      throw error;
-    }
+      // 强制使用 3001 端口，与 gpage.py 保持一致
+      this.baseUrl = 'http://localhost:3001';
   }
 
   async getFolders(path?: string): Promise<FolderStructure> {
-    try {
-      const url = new URL(`${this.baseUrl}/api/folders`);
-      if (path) url.searchParams.set('path', path);
+      try {
+          const url = `${this.baseUrl}/api/folders`;
+          console.log('Fetching from:', url);
 
-      const response = await fetch(url.toString());
-      if (!response.ok) throw new Error('Failed to fetch folders');
+          const response = await fetch(url);
+          if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}));
+              throw new Error(errorData.message || 'Failed to fetch folders');
+          }
 
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching folders:', error);
-      throw error;
-    }
+          const data = await response.json();
+          console.log('Received data:', data);
+          return data;
+      } catch (error) {
+          console.error('Error fetching folders:', error);
+          throw error;
+      }
   }
 }
 
